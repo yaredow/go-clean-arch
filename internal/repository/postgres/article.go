@@ -4,15 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yaredow/new-arch/domain"
+	"github.com/yaredow/new-arch/internal/domain"
 )
 
 type ArticleRepository struct {
-	pool *pgxpool.Pool
+	pool Pool
 }
 
-func NewArticleRepository(pool *pgxpool.Pool) *ArticleRepository {
+func NewArticleRepository(pool Pool) *ArticleRepository {
 	return &ArticleRepository{pool: pool}
 }
 
@@ -57,7 +56,7 @@ func (r *ArticleRepository) Fetch(ctx context.Context, cursor string, num int64)
 
 func (r *ArticleRepository) GetByID(ctx context.Context, id int64) (domain.Article, error) {
 	query := `
-		SELECT id, title, content, author_id, updated_at, created_at FROM articles WHERE id = $1
+		SELECT id, title, content, author_id, updated_at, created_at FROM article WHERE id = $1
 	`
 	var a domain.Article
 	var authorID int64
@@ -76,7 +75,7 @@ func (r *ArticleRepository) GetByID(ctx context.Context, id int64) (domain.Artic
 
 func (r *ArticleRepository) GetByTitle(ctx context.Context, title string) (domain.Article, error) {
 	query := `
-		SELECT id, title, content, author_id, updated_at, created_at FROM articles WHERE title = $1
+		SELECT id, title, content, author_id, updated_at, created_at FROM article WHERE title = $1
 	`
 
 	var a domain.Article
@@ -99,7 +98,7 @@ func (r *ArticleRepository) GetByTitle(ctx context.Context, title string) (domai
 
 func (r *ArticleRepository) Store(ctx context.Context, a *domain.Article) error {
 	query := `
-		INSERT INTO articles (title, content, author_id, updated_at, created_at) VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO article (title, content, author_id, updated_at, created_at) VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`
 
@@ -129,7 +128,7 @@ func (r *ArticleRepository) Update(ctx context.Context, a *domain.Article) (err 
 
 func (r *ArticleRepository) Delete(ctx context.Context, id int64) (err error) {
 	query := `
-		DELETE FROM articles WHERE id = $1
+		DELETE FROM article WHERE id = $1
 	`
 
 	tag, err := r.pool.Exec(ctx, query, id)

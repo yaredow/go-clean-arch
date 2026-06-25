@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v5"
-	"github.com/yaredow/new-arch/domain"
+	"github.com/yaredow/new-arch/internal/domain"
 )
 
 type ArticleService interface {
@@ -25,6 +25,10 @@ type ArticleHandler struct {
 func NewArticleHandler(e *echo.Echo, svc ArticleService) {
 	h := &ArticleHandler{svc: svc}
 	e.GET("/articles", h.FetchArticle)
+	e.POST("/articles", h.Store)
+	e.GET("/articles/:id", h.GetByID)
+	e.PUT("/articles/:id", h.Update)
+	e.DELETE("/articles/:id/delete", h.Delete)
 }
 
 func (h *ArticleHandler) FetchArticle(c *echo.Context) error {
@@ -44,6 +48,66 @@ func (h *ArticleHandler) FetchArticle(c *echo.Context) error {
 
 	c.Response().Header().Set("X-Cursor", nextCursor)
 	return c.JSON(http.StatusOK, listAr)
+}
+
+func (h *ArticleHandler) GetByID(c *echo.Context) error {
+	idP, err := strconv.Atoi(c.Param("id"))
+	if err != nil || idP == 0 {
+		return c.JSON(getStatusCode(err), map[string]string{"message": "not found"})
+	}
+
+	ctx := c.Request().Context()
+	art, err := h.svc.GetByID(ctx, int64(idP))
+	if err != nil {
+		return c.JSON(getStatusCode(err), map[string]string{"message": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, art)
+}
+
+func (h *ArticleHandler) Store(c *echo.Context) error {
+	var article domain.Article
+	if err := c.Bind(&article); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"message": err.Error()})
+	}
+
+	if err := h.svc.Store(c.Request().Context(), &article); err != nil {
+		return c.JSON(getStatusCode(err), map[string]string{"message": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, article)
+}
+
+func (h *ArticleHandler) Delete(c *echo.Context) error {
+	idP, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "not found"})
+	}
+
+	if err := h.svc.Delete(c.Request().Context(), int64(idP)); err != nil {
+		return c.JSON(getStatusCode(err), map[string]string{"message": err.Error()})
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *ArticleHandler) Update(c *echo.Context) error {
+	idP, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "not found"})
+	}
+
+	var article domain.Article
+	if err = c.Bind(&article); err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]string{"message": err.Error()})
+	}
+
+	article.ID = int64(idP)
+	if err := h.svc.Update(c.Request().Context(), &article); err != nil {
+		return c.JSON(getStatusCode(err), map[string]string{"message": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, article)
 }
 
 func getStatusCode(err error) int {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/yaredow/new-arch/domain"
+	"github.com/yaredow/new-arch/internal/domain"
 )
 
 type ArticleRepository interface {
@@ -71,7 +71,13 @@ func (a *Service) Update(ctx context.Context, ar *domain.Article) (err error) {
 	return a.articleRepo.Update(ctx, ar)
 }
 
-func (a *Service) Store(ctx context.Context, id int64) (err error) {
+func (a *Service) Store(ctx context.Context, ar *domain.Article) (err error) {
+	ar.CreatedAt = time.Now()
+	ar.UpdatedAt = time.Now()
+	return a.articleRepo.Store(ctx, ar)
+}
+
+func (a *Service) Delete(ctx context.Context, id int64) (err error) {
 	existedArticle, err := a.articleRepo.GetByID(ctx, id)
 	if err != nil {
 		return
@@ -81,9 +87,5 @@ func (a *Service) Store(ctx context.Context, id int64) (err error) {
 		return domain.ErrNotFound
 	}
 
-	return a.articleRepo.Delete(ctx, existedArticle.ID)
-}
-
-func (a *Service) Delete(ctx context.Context, id int64) (err error) {
 	return a.articleRepo.Delete(ctx, id)
 }

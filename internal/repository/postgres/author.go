@@ -3,20 +3,19 @@ package postgres
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yaredow/new-arch/domain"
+	"github.com/yaredow/new-arch/internal/domain"
 )
 
 type AuthorRepository struct {
-	pool *pgxpool.Pool
+	pool Pool
 }
 
-func NewAuthorRepository(pool *pgxpool.Pool) *AuthorRepository {
+func NewAuthorRepository(pool Pool) *AuthorRepository {
 	return &AuthorRepository{pool: pool}
 }
 
 func (r *AuthorRepository) GetByID(ctx context.Context, id int64) (domain.Author, error) {
-	query := `SELECT * FROM authors WHERE id = $1`
+	query := `SELECT id, name, updated_at, created_at FROM author WHERE id = $1`
 
 	var a domain.Author
 	err := r.pool.QueryRow(ctx, query, id).Scan(&a.ID, &a.Name, &a.UpdatedAt, &a.CreatedAt)
